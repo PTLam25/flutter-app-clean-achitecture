@@ -1,16 +1,15 @@
-# flutter_app_clean_achitecture
+# Чистая архитектура в Flutter
+Чистая архитектура предложенная дядя Бобом, говорит, что мы все должны стремиться разделить код на независимые уровни и полагаться на абстракции, а не на конкретные реализации.
 
-Flutter application with clean architecture.
+## Чистая архитектура
+![alt text](http://i.imgur.com/JoYPXDr.png "diagram")
 
-## Getting Started
+На картинке выше мы видим разные слови, черные горизонтальные стрелки ---> представляют поток зависимостей. Например, Entities ни от чего не зависят, Use Cases зависят только от Entities и т.д.
 
-This project is a starting point for a Flutter application.
 
-A few resources to get you started if this is your first Flutter project:
+## Чистая архитектура в Flutter
+![alt text](http://i.imgur.com/xxh5YSt.png "diagram")
 
-- [Lab: Write your first Flutter app](https://flutter.dev/docs/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://flutter.dev/docs/cookbook)
+В нашем приложения могут быть разные фичи (функционал приложения) и реализация каждой фичи должна быть разделенна на 3 слоя: **presentation**, **domain** and **data**.
+![alt text](http://i.imgur.com/3OfzaKL.png "diagram")
 
-For help getting started with Flutter, view our
-[online documentation](https://flutter.dev/docs), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
