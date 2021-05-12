@@ -9,6 +9,9 @@ import 'package:flutter_app_clean_achitecture/features/number_trivia/domain/repo
 import 'package:meta/meta.dart';
 // Реализация интерфейса Repository
 
+// создали именной тип функции, чтобы не писать Future<NumberTrivia> Function()
+typedef Future<NumberTrivia> _ConcreteOrRandomChooser();
+
 class NumberTriviaRepositoryImpl implements NumberTriviaRepository {
   final NumberTriviaRemoteDataSource remoteDataSource;
   final NumberTriviaLocalDataSource localDataSource;
@@ -23,34 +26,24 @@ class NumberTriviaRepositoryImpl implements NumberTriviaRepository {
   @override
   Future<Either<Failure, NumberTrivia>> getConcreteNumberTrivia(
       int number) async {
-    if (await netWorkInfo.isConnected) {
-      try {
-        // получаем данные
-        final remoteTrivia =
-            await remoteDataSource.getConcreteNumberTrivia(number);
-        // кэшируем данные
-        localDataSource.cacheNumberTrivia(remoteTrivia);
-        // возвращаем результат
-        return Right(remoteTrivia);
-      } on ServerException {
-        return Left(ServerFailure());
-      }
-    } else {
-      try {
-        final localTrivia = await localDataSource.getLastNumberTrivia();
-        return Right(localTrivia);
-      } on CacheException {
-        return Left(CacheFailure());
-      }
-    }
+    return await _getTrivia(() {
+      return remoteDataSource.getConcreteNumberTrivia(number);
+    });
   }
 
   @override
   Future<Either<Failure, NumberTrivia>> getRandomNumberTrivia() async {
+    return await _getTrivia(() {
+      return remoteDataSource.getRandomNumberTrivia();
+    });
+  }
+
+  Future<Either<Failure, NumberTrivia>> _getTrivia(
+      _ConcreteOrRandomChooser getConcreteOrRandom) async {
     if (await netWorkInfo.isConnected) {
       try {
         // получаем данные
-        final remoteTrivia = await remoteDataSource.getRandomNumberTrivia();
+        final remoteTrivia = await getConcreteOrRandom();
         // кэшируем данные
         localDataSource.cacheNumberTrivia(remoteTrivia);
         // возвращаем результат
