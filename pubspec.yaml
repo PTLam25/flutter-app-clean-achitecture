@@ -19,9 +19,13 @@ dependencies:
   equatable: ^1.0.2
   # Functional programming things and types(like Any, Union in Python as result of function)
   dartz: ^0.8.6
+
   # Remote APi
-  connectivity: ^0.4.3+7
+  # check if there is internet
+  data_connection_checker: ^0.3.4
+  # http request
   http: ^0.12.0+2
+
   # Local cache
   shared_preferences: ^0.5.5+4
 
