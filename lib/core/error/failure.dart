@@ -1,6 +1,6 @@
 import 'package:equatable/equatable.dart';
 
-// абстракный класс ошибки для приложения
+// абстракный класс ошибки для приложения. Создали как обычный класс, чтобы туда поместить нужные поля
 abstract class Failure extends Equatable {
   final List properties;
 
