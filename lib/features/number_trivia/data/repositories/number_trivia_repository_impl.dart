@@ -1,18 +1,70 @@
 import 'package:dartz/dartz.dart';
+import 'package:flutter_app_clean_achitecture/core/error/exception.dart';
 import 'package:flutter_app_clean_achitecture/core/error/failure.dart';
+import 'package:flutter_app_clean_achitecture/core/platform/network_info.dart';
+import 'package:flutter_app_clean_achitecture/features/number_trivia/data/datasources/number_trivia_local_data_source.dart';
+import 'package:flutter_app_clean_achitecture/features/number_trivia/data/datasources/number_trivia_remote_data_source.dart';
 import 'package:flutter_app_clean_achitecture/features/number_trivia/domain/entities/number_trivia.dart';
 import 'package:flutter_app_clean_achitecture/features/number_trivia/domain/repositories/number_trivia_repository.dart';
-
+import 'package:meta/meta.dart';
 // Реализация интерфейса Repository
 
-class NumberTriviaREpositoryImpl implements NumberTriviaRepository {
+class NumberTriviaRepositoryImpl implements NumberTriviaRepository {
+  final NumberTriviaRemoteDataSource remoteDataSource;
+  final NumberTriviaLocalDataSource localDataSource;
+  final NetWorkInfo netWorkInfo;
+
+  NumberTriviaRepositoryImpl({
+    @required this.remoteDataSource,
+    @required this.localDataSource,
+    @required this.netWorkInfo,
+  });
+
   @override
-  Future<Either<Failure, NumberTrivia>> getConcreteNumberTrivia(int number) {
-    return null();
+  Future<Either<Failure, NumberTrivia>> getConcreteNumberTrivia(
+      int number) async {
+    if (await netWorkInfo.isConnected) {
+      try {
+        // получаем данные
+        final remoteTrivia =
+            await remoteDataSource.getConcreteNumberTrivia(number);
+        // кэшируем данные
+        localDataSource.cacheNumberTrivia(remoteTrivia);
+        // возвращаем результат
+        return Right(remoteTrivia);
+      } on ServerException {
+        return Left(ServerFailure());
+      }
+    } else {
+      try {
+        final localTrivia = await localDataSource.getLastNumberTrivia();
+        return Right(localTrivia);
+      } on CacheException {
+        return Left(CacheFailure());
+      }
+    }
   }
 
   @override
-  Future<Either<Failure, NumberTrivia>> getRandomNumberTrivia() {
-    return null();
+  Future<Either<Failure, NumberTrivia>> getRandomNumberTrivia() async {
+    if (await netWorkInfo.isConnected) {
+      try {
+        // получаем данные
+        final remoteTrivia = await remoteDataSource.getRandomNumberTrivia();
+        // кэшируем данные
+        localDataSource.cacheNumberTrivia(remoteTrivia);
+        // возвращаем результат
+        return Right(remoteTrivia);
+      } on ServerException {
+        return Left(ServerFailure());
+      }
+    } else {
+      try {
+        final localTrivia = await localDataSource.getLastNumberTrivia();
+        return Right(localTrivia);
+      } on CacheException {
+        return Left(CacheFailure());
+      }
+    }
   }
 }
