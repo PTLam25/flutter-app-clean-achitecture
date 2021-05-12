@@ -8,7 +8,7 @@ import '../../../../fixtures/fixture_reader.dart';
 
 void main() {
   final testNumberTriviaModel =
-      NumberTrivialModel(number: 1, text: "Test Text");
+  NumberTriviaModel(number: 1, text: "Test Text");
 
   test('should be a subclass of NumberTrivia entity', () async {
     // assert
@@ -25,7 +25,7 @@ void main() {
           final Map<String, dynamic> jsonMap =
               json.decode(fixture('trivia.json'));
           // 2) вызов функции
-          final result = NumberTrivialModel.fromJson(jsonMap);
+          final result = NumberTriviaModel.fromJson(jsonMap);
           // 3) валидация
           expect(result, testNumberTriviaModel);
         },
@@ -38,7 +38,7 @@ void main() {
           final Map<String, dynamic> jsonMap =
               json.decode(fixture('trivia_double.json'));
           // 2) вызов функции
-          final result = NumberTrivialModel.fromJson(jsonMap);
+          final result = NumberTriviaModel.fromJson(jsonMap);
           // 3) валидация
           expect(result, testNumberTriviaModel);
         },
