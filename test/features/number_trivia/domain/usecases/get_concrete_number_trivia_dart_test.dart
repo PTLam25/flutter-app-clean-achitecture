@@ -33,7 +33,7 @@ void main() {
         .thenAnswer((_) async => Right(testNumberTrivia));
 
     // вызов функции для теста
-    final result = await useCase.execute(number: testNumber);
+    final result = await useCase(Params(number: testNumber));
 
     // валидация
     expect(result, Right(testNumberTrivia));
