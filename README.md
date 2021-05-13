@@ -64,3 +64,191 @@ Model будет наследоваться от Entities с дополните�
 
 В datasources будет содержаться логика для API и локального storage(пакет shared_preferences):
 ![alt text](http://i.imgur.com/SAjqHOH.png "diagram")
+
+
+# TEST DRIVEN DEVELOPMENT (TDD)
+**Test driven development** - это когда сначало пишется тест, а потом уже код. Это следует принцип YAGNI (You are goint need it), когда мы через тест понимаем какой код нам нужно написать и что ожидать,
+тем самым избавляемся от возможности написания лишнего кода.
+
+Кратко суть TDD: начинаем писать тест, когда доходим до нереализованных классов, то реализуем классы и продолжаем писать тест для одного тесткейса, потом пишем логику и запускаем тест.  
+Если тест прошел, делаем рефакторинг кода, и так дальше по тесткейсам.
+
+## Пример
+Пример: нам надо проверить класс реализующий функции запроса за данными во внеший АПИ NumberTriviaRemoteDataSourceImpl, который в своих методах использует client http/dio/GetConnect.
+1. У нас еще нет класса NumberTriviaRemoteDataSourceImpl, пока есть только NumberTriviaRemoteDataSource, но мы уже пишем тест.
+Сначала конечно мочим наш http client, чтобы контролировать результат возврата его функции для теста.
+Потом инициализуем данные и нам сразу подсвечится красным, что нет класса NumberTriviaRemoteDataSourceImpl.
+```dart
+class MockHttpClient extends Mock implements http.Client {}
+
+void main() {
+  NumberTriviaRemoteDataSourceImpl dataSource;
+  MockHttpClient mockHttpClient;
+
+  setUp(() {
+    mockHttpClient = MockHttpClient();
+    dataSource = NumberTriviaRemoteDataSourceImpl(client: mockHttpClient);
+  });
+}
+```
+
+2. Создаим класс NumberTriviaRemoteDataSourceImpl и реализуем функции с возвратом null, так как тест просит только создания класса и все.
+```dart
+class NumberTriviaRemoteDataSourceImpl implements NumberTriviaRemoteDataSource {
+  final http.Client client;
+
+  NumberTriviaRemoteDataSourceImpl({@required this.client});
+
+  @override
+  Future<NumberTriviaModel> getConcreteNumberTrivia(int number) {
+    return null;
+  }
+
+  @override
+  Future<NumberTriviaModel> getRandomNumberTrivia() {
+    return null;
+  }
+}
+```
+
+3. Видим, что код теста уже не подсвечивается красным, можем продолжить писать код теста.
+Реализуем первую проверку, что мы отправляем запрос по нужно URL и с нужным headers.
+Мы всегда должны писать код мочинга сразу, чтобы при любом тесте вызывался замоченный объект.
+```dart
+  group(
+    'getConcreteNumberTrivia',
+    () {
+      final testNumber = 1;
+
+      test(
+        '''should perform a GET request on a URL with number 
+        being the endpoint and with application/json''',
+        () async {
+          // mock
+          when(mockHttpClient.get(any, headers: anyNamed('headers')))
+              .thenAnswer(
+                  (_) async => http.Response(fixture('trivia.json'), 200));
+          // call
+          dataSource.getConcreteNumberTrivia(testNumber);
+
+          // asert
+          verify(mockHttpClient.get(
+            'http://numbersapi.com/$testNumber',
+            headers: {'Content-Type': 'application/json'},
+          ));
+        },
+      );
+    },
+  );
+```
+
+4. Так как методы уже написанны, нам красного не подсвечат, но если запустить тест, то будет провал, так нет реализации метода getConcreteNumberTrivia.
+Поэтому опять переключаемся на реализацию запроса с правильным URL и headers.
+```dart
+class NumberTriviaRemoteDataSourceImpl implements NumberTriviaRemoteDataSource {
+  final http.Client client;
+
+  NumberTriviaRemoteDataSourceImpl({@required this.client});
+
+  @override
+  Future<NumberTriviaModel> getConcreteNumberTrivia(int number) {
+    client.get(
+      'http://numbersapi.com/$number',
+      headers: {'Content-Type': 'application/json'},
+    );
+  }
+
+  @override
+  Future<NumberTriviaModel> getRandomNumberTrivia() {
+    return null;
+  }
+}
+```
+Запускаем тест и тест прошел, значит можно продолжить писать другие тесты.
+
+5. Проверим, что метода getConcreteNumberTrivia вернет ожидаемый результат.
+Для этого в тесте групп создаим ожидаемый результат testNumberTriviaModel и создадим новый testcase.
+Мы могли добавить логику в первом тесте, но надо стараться разбивать тесты на мелькие тесткейсы и их тестировать:
+```dart
+group(
+    'getConcreteNumberTrivia',
+    () {
+      final testNumber = 1;
+      final testNumberTriviaModel =
+          NumberTriviaModel.fromJson(json.decode(fixture('trivia.json')));
+
+      test(
+        '''should return NumberTrivia when the response code is 200 (success)''',
+            () async {
+          // mock
+          when(mockHttpClient.get(any, headers: anyNamed('headers')))
+              .thenAnswer(
+                  (_) async => http.Response(fixture('trivia.json'), 200));
+          // call
+          final result = await dataSource.getConcreteNumberTrivia(testNumber);
+
+          // assert
+          expect(result, equals(testNumberTriviaModel));
+        },
+      );
+    },
+  );
+```
+Запускаем тест и от отваливается, так как реализации еще нет.
+
+6. Приступаем к реализации логики для теста:
+```dart
+  @override
+  Future<NumberTriviaModel> getConcreteNumberTrivia(int number) async {
+    final response = await client.get(
+      'http://numbersapi.com/$number',
+      headers: {'Content-Type': 'application/json'},
+    );
+
+    return NumberTriviaModel.fromJson(json.decode(response.body));
+  }
+```
+Запустили тест, тест прошел идем дальше.
+
+7. Теперь нам надо проверить когда сервер возвращает статус 404.
+Создаем другой тесткейс:
+```dart
+  test(
+    '''should throw a ServerException when the response code is 404 or other''',
+    () async {
+      // mock
+      when(mockHttpClient.get(any, headers: anyNamed('headers')))
+          .thenAnswer(
+              (_) async => http.Response('Something went wrong', 404));
+      // call
+      final call = dataSource.getConcreteNumberTrivia;
+
+      // assert
+      expect(
+          () => call(testNumber), throwsA(TypeMatcher<ServerException>()));
+    },
+  );
+```
+Запускаем тест и конечно отваливается. Приступим к реализации.
+
+8. Добавим валидацию статуса:
+```dart
+  @override
+  Future<NumberTriviaModel> getConcreteNumberTrivia(int number) async {
+    final response = await client.get(
+      'http://numbersapi.com/$number',
+      headers: {'Content-Type': 'application/json'},
+    );
+
+    if (response.statusCode == 200) {
+      return NumberTriviaModel.fromJson(json.decode(response.body));
+    } else {
+      throw ServerException();
+    }
+  }
+```
+Запускаем тест и проходит. Все мы закончили!
+
+
+## Как мочить в тесте
+При UNIT теста мокаем нижний уровень для текущего уровня теста. Например, если мы тестируем repositories в **data** слое, который вызывается datasources АПИ http client, то мы мокаем http client, тем самым контролируя результат возвращаемых его методов.
